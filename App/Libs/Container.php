@@ -4,6 +4,7 @@ namespace App\Libs;
 
 use App\Libs\Routing\Route;
 use App\Libs\Routing\Router;
+use App\Libs\Request;
 
 class Container
 {
@@ -41,6 +42,7 @@ class Container
         $this->instance('Config', new Config);
         $this->instance('Router', new Router);
         $this->instance('Route', new Route);
+        $this->instance('Request', new Request);
     }
 
     public static function __callStatic($method, $args)

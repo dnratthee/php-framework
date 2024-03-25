@@ -6,7 +6,6 @@ use App\Libs\Application;
 use App\Libs\Container;
 
 /**
- * 
  * @method static \App\Libs\Routing\Route middleware(array|string|null $middleware)
  * @method static \App\Libs\Routing\Route controller(string $controller)
  * @method static \App\Libs\Routing\Route get(string $path, array|string|callable|null $action = null)

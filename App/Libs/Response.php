@@ -17,10 +17,18 @@ class Response
         $this->HTTPCode = $httpCode;
     }
 
+    public static function make($data = [], $message = null, $status = true, $httpCode = 200)
+    {
+        Request::isApi() ? static::json($data, $message, $status, $httpCode) : static::html($data, $message, $status, $httpCode);
+        return new Response($data, $message, $status, $httpCode);
+    }
+
     public static function html($data = [], $message = null, $status = true, $httpCode = 200)
     {
         if ($data instanceof Response) {
-            header('Content-Type: text/html');
+            if (!headers_sent()) {
+                header('Content-Type: text/html');
+            }
             if (is_string($data)) {
                 echo $data;
             } else {
@@ -34,7 +42,9 @@ class Response
 
     public static function toHTML($data = [], $message = null, $status = true, $httpCode = 200)
     {
-        header('Content-Type: text/html');
+        if (!headers_sent()) {
+            header('Content-Type: text/html');
+        }
         if (is_string($data)) {
             echo $data;
         } else {
@@ -48,7 +58,9 @@ class Response
             $status = false;
         }
         if ($data instanceof Response) {
-            header('Content-Type: application/json');
+            if (!headers_sent()) {
+                header('Content-Type: application/json');
+            }
             $data->toJson();
             return;
         } else if (is_object($data) && method_exists($data, 'getAttributes')) {
@@ -60,8 +72,10 @@ class Response
 
     public function toJson()
     {
-        header('Content-Type: application/json');
-        http_response_code($this->HTTPCode);
+        if (!headers_sent()) {
+            header('Content-Type: application/json');
+            http_response_code($this->HTTPCode);
+        }
         echo json_encode([
             'status' => $this->status,
             'message' => $this->message,

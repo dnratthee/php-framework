@@ -2,6 +2,7 @@
 
 namespace App\Controllers;
 
+use App\Libs\Auth\Authorizable;
 use App\Libs\Controller;
 use App\Models\Room;
 use App\Libs\Request;
@@ -9,8 +10,10 @@ use App\Libs\Response;
 
 class RoomController extends Controller
 {
+    use Authorizable;
+
     public function getAll(Request $request)
-    {       
+    {
         Response::json(
             Room::all()->get()
         );
@@ -27,7 +30,7 @@ class RoomController extends Controller
     public function store(Request $request)
     {
         Response::json(
-            (new Room($request->getBody()))
+            (new Room($request->all()))
                 ->save()
         );
     }
@@ -36,7 +39,7 @@ class RoomController extends Controller
     {
         Response::json(
             Room::find($request->id)
-                ->fill($request->getBody())
+                ->fill($request->all())
                 ->save()
         );
     }
@@ -46,7 +49,6 @@ class RoomController extends Controller
         Response::json(
             Room::destroy($request->id)
         );
-        // Room::find($request->id)->delete()->toJson();
     }
 
     public function temp1(Request $request)

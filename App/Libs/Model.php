@@ -12,6 +12,7 @@ use function PHPSTORM_META\type;
 /**
  * 
  * @method static \App\Libs\Model where(string $column, string $value, string $operator = "=")
+ * @method static \App\Libs\Model update(array $data, bool $fillable = true)
  * 
  */
 
@@ -170,7 +171,7 @@ class Model extends DB
                     $this->$key = $data->{$key};
                 }
 
-                return $this->attributes;
+                return $this;
             } else {
                 return null;
             }
@@ -181,7 +182,7 @@ class Model extends DB
         }
     }
 
-    public function save()
+    public function save($obj = false)
     {
         if ($this->hasID()) {
             $sql = "UPDATE " . $this->table . " SET ";
@@ -212,24 +213,34 @@ class Model extends DB
 
                 if ($stmt->errorCode() !== '00000') {
                     debug($stmt->errorInfo());
+                    if ($obj) {
+                        return null;
+                    }
                     return (new Response)->withMessage('Server Error.')->withStatus(false)->withHTTPCode(500);
                 } else {
                     if ($stmt->rowCount() > 0) {
                         $data = $this->find($data[$this->primaryKey])->attributes;
+                        if ($obj) {
+                            return $this;
+                        }
                         return (new Response)->withMessage('Data updated successfully')->withData($data)->withStatus(true)->withHTTPCode(200);
                     } else {
+                        if ($obj) {
+                            return null;
+                        }
                         return (new Response)->withMessage('No data updated')->withStatus(false)->withHTTPCode(400);
                     }
                 }
             } catch (\Exception $e) {
                 $db->rollBack();
+                if ($obj) {
+                    return null;
+                }
                 http_response_code(500);
                 debug($e->getMessage());
                 return (new Response)->withMessage('Server Error.')->withStatus(false)->withHTTPCode(500);
             }
         }
-
-
 
         $class = new static;
         $sql = "INSERT INTO " . $class->table . " (";
@@ -252,15 +263,32 @@ class Model extends DB
             $id = $db->lastInsertId();
             $db->commit();
             if ($stmt->rowCount() > 0) {
+                $this->{$this->primaryKey} = intval($id);
+                if ($obj) {
+                    return $this;
+                }
                 return (new Response)->withMessage('Data created successfully')->withData($this->find($id)->attributes)->withStatus(true)->withHTTPCode(201);
             } else {
+                if ($obj) {
+                    return null;
+                }
                 return (new Response)->withMessage('Failed to create data')->withStatus(false)->withHTTPCode(400);
             }
         } catch (\Exception $e) {
             $db->rollBack();
+            if ($obj) {
+                return null;
+            }
             debug($e->getMessage());
             return (new Response)->withMessage('Server Error.')->withStatus(false)->withHTTPCode(500);
         }
+    }
+
+    public static function create($data = [])
+    {
+        $class = new static;
+        $class->fill($data);
+        return $class->save();
     }
 
     public function delete()
