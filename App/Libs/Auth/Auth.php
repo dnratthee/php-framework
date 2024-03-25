@@ -10,7 +10,6 @@ class Auth extends Model
 {
     public static function check()
     {
-        isset($_SESSION) ? session_start() : null;
         if (isset($_SESSION['token'])) {
             $token = $_SESSION['token'];
             $user = new User;
@@ -37,7 +36,7 @@ class Auth extends Model
 
     public static function login($user)
     {
-        isset($_SESSION) ? session_start() : null;
+        session_start();
         $token = md5(uniqid(microtime(), true));
         $_SESSION['user'] = $user->attributes;
         $_SESSION['token'] = $token;
@@ -56,7 +55,7 @@ class Auth extends Model
 
     public static function logout()
     {
-        isset($_SESSION) ? session_start() : null;
+        session_start();
         $token = null;
         if (isset($_SESSION['token'])) {
             $token = $_SESSION['token'];
