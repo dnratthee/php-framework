@@ -10,7 +10,7 @@ trait Authorizable
 {
     public function __construct()
     {
-        // $this->authorize();
+        $this->authorize();
         parent::__construct();
     }
 
