@@ -4,6 +4,13 @@ namespace App\Libs\Routing;
 
 use App\Libs\Container;
 
+/**
+ * @method static \App\Libs\Routing\RouteContainer add(\App\Libs\Routing\Route $route)
+ * @method static \App\Libs\Routing\RouteContainer getRoutes()
+ * @method static \App\Libs\Routing\RouteContainer hasRoute(string $method, string $uri)
+ * 
+ */
+
 class Router extends Container
 {
     protected $routes;

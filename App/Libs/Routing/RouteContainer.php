@@ -16,7 +16,7 @@ class RouteContainer
             }
         }
         $route->uri = preg_replace("/\{[\w]+\}/", "\S", $route->uri);
-        $this->routes[$route->method][$route->uri] = ['controller' => $route->controller, 'action' => $route->action, 'param' => $route->param];
+        $this->routes[$route->method][$route->uri] = ['middleware' => $route->middleware, 'controller' => $route->controller, 'action' => $route->action, 'param' => $route->param];
         return $this;
     }
 

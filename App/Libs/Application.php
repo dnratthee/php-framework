@@ -35,9 +35,9 @@ class Application extends Container
         return $this;
     }
 
-    public function handleRequest(Request $request)
+    public function handleRequest()
     {
-        return $request->capture(Router::getRoutes());
+        return Request::capture(Router::getRoutes());
     }
 
     public function run()

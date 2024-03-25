@@ -1,14 +1,23 @@
 <?php
 
-use App\Libs\Auth\Auth;
+namespace App\Libs\Auth;
 
-//  TODO :: Add a method to check if the user is authorized to access a resource
+use App\Libs\Request;
+use App\Libs\Response;
+use App\Libs\Routing\Route;
+
 trait Authorizable
 {
-    public function authorize($request)
+    public function __construct()
+    {
+        // $this->authorize();
+        parent::__construct();
+    }
+
+    public function authorize()
     {
         if (!Auth::check()) {
-            return redirect('/login');
+            return Response::json(['message' => 'Unauthorized'], 401);
         }
     }
 }

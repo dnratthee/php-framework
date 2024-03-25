@@ -37,4 +37,23 @@ class UserController extends Controller
                 ->get()
         );
     }
+
+    public function store(Request $request)
+    {
+        $user = User::create($request->all());
+        if ($user) {
+            Response::json(data: $user, message: 'User created successfully');
+        } else {
+            Response::json(message: 'Failed to create user', httpCode: 500);
+        }
+    }
+
+    public function logOut(Request $request)
+    {
+        if (User::logout()) {
+            Response::json(message: 'Logged out successfully');
+        } else {
+            Response::json(message: 'Failed to logout', httpCode: 500);
+        }
+    }
 }
