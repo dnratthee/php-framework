@@ -12,7 +12,8 @@ class Database extends Container
     protected $select = ['*'];
     protected $table;
     protected $where = [];
-    protected $limit;
+    protected $orderBy = [];
+    protected $limit = 20;
     protected $offset;
 
     static protected function getPdo()

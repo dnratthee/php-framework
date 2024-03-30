@@ -4,15 +4,18 @@ namespace App\Libs;
 
 use App\Libs\Database as DB;
 use App\Libs\Response;
-use App\Libs\Helper\Arr;
 use PDO;
-
-use function PHPSTORM_META\type;
 
 /**
  * 
+ * @method static \App\Libs\Model select(array $columns)
  * @method static \App\Libs\Model where(string $column, string $value, string $operator = "=")
  * @method static \App\Libs\Model update(array $data, bool $fillable = true)
+ * @method static \App\Libs\Model find(int $id)
+ * @method static \App\Libs\Model first()
+ * @method static \App\Libs\Model orderBy(string $column, string $order = "ASC")
+ * @method static \App\Libs\Model limit(int $limit)
+ * @method static \App\Libs\Model offset(int $offset)
  * 
  */
 
@@ -77,78 +80,39 @@ class Model extends DB
 
     public function get()
     {
-        return $this->attributes;
-    }
-
-    public static function all()
-    {
-        $class = new static;
-        $sql = "SELECT * FROM " . $class->table;
-        $stmt = $class->db->prepare($sql);
-
-        try {
-            $stmt->execute();
-            $data = $stmt->fetchAll(PDO::FETCH_OBJ);
-            $clean = new \stdClass();
-            foreach ($data as $key => $value) {
-                $clean->{$key} = $value;
-                foreach ($value as $k => $v) {
-                    if (in_array($k, $class->hidden)) {
-                        $clean->{$key}->{$k} = "******";
-                    }
-                }
-            }
-            $class->attributes = $clean;
-            return $class;
-        } catch (\Exception $e) {
-            http_response_code(500);
-            debug($e->getMessage());
-            return (new Response)->withMessage('Server Error.')->withStatus(false)->withHTTPCode(500)->html();
+        if ($this->hasData()) {
+            return $this->attributes;
         }
-    }
 
-    public static function find($id)
-    {
-        $class = new static;
-        $sql = "SELECT * FROM " . $class->table . " WHERE " . $class->primaryKey . " = :id";
-        try {
-            $stmt = $class->db->prepare($sql);
-            $stmt->execute(['id' => $id]);
-
-            if ($stmt->rowCount() > 0) {
-                $data = $stmt->fetch(PDO::FETCH_OBJ);
-                $class->{$class->primaryKey} = $data->{$class->primaryKey};
-                foreach ($data as $key => $value) {
-                    if (in_array($key, $class->hidden)) {
-                        $class->$key = "******";
-                        continue;
-                    }
-                    $class->$key = $data->{$key};
-                }
-            }
-
-            return $class;
-        } catch (\Exception $e) {
-            http_response_code(500);
-            debug($e->getMessage());
-            return (new Response)->withMessage('Server Error.')->withStatus(false)->withHTTPCode(500);
-        }
-    }
-
-    public function first()
-    {
         $select = implode(", ", $this->select);
-        $where = [];
+
+        $sql = "SELECT " . $select . " FROM " . $this->table;
+
         if (count($this->where) > 0) {
+            $where = [];
             foreach ($this->where as $key => $value) {
                 $where[] = $key . " " . $value["operator"] . " :" . $key;
             }
-        }
-        $sql = "SELECT " . $select . " FROM " . $this->table;
-        if (count($where) > 0) {
             $sql .= " WHERE " . implode(" AND ", $where);
         }
-        $sql .= " LIMIT 1;";
+
+        if (count($this->orderBy) > 0) {
+            $order = [];
+            foreach ($this->orderBy as $value) {
+                $order[] = $value[0] . " " . $value[1];
+            }
+            $sql .= " ORDER BY " . implode(", ", $order);
+        }
+
+        if ($this->limit) {
+            $sql .= " LIMIT " . $this->limit;
+        }
+
+        if ($this->offset) {
+            $sql .= " OFFSET " . $this->offset;
+        }
+
+        $stmt = $this->db->prepare($sql);
 
         $param = [];
         foreach ($this->where as $key => $value) {
@@ -156,13 +120,10 @@ class Model extends DB
         }
 
         try {
-            $stmt = $this->db->prepare($sql);
             $stmt->execute($param);
-
-            if ($stmt->rowCount() > 0) {
+            if ($this->limit == 1) {
                 $data = $stmt->fetch(PDO::FETCH_OBJ);
                 $this->{$this->primaryKey} = $data->{$this->primaryKey};
-
                 foreach ($data as $key => $value) {
                     if (in_array($key, $this->hidden)) {
                         $this->$key = "******";
@@ -170,16 +131,35 @@ class Model extends DB
                     }
                     $this->$key = $data->{$key};
                 }
-
                 return $this;
-            } else {
-                return null;
             }
+            $data = $stmt->fetchAll(PDO::FETCH_OBJ);
+            $clean = new \stdClass();
+            foreach ($data as $key => $value) {
+                $clean->{$key} = $value;
+                foreach ($value as $k => $v) {
+                    if (in_array($k, $this->hidden)) {
+                        $clean->{$key}->{$k} = "******";
+                    }
+                }
+            }
+            $this->attributes = $clean;
+            return $this;
         } catch (\Exception $e) {
             http_response_code(500);
             debug($e->getMessage());
             return (new Response)->withMessage('Server Error.')->withStatus(false)->withHTTPCode(500);
         }
+    }
+
+    public function hasData()
+    {
+        if (is_object($this->attributes) && isset(((array)$this->attributes)[0]) && count((array)$this->attributes) > 1) {
+            return true;
+        } else if (is_object($this->attributes) && !empty($this->attributes->{$this->primaryKey})) {
+            return true;
+        }
+        return false;
     }
 
     public function save($obj = false)
@@ -359,6 +339,11 @@ class Model extends DB
         }
     }
 
+    public function hasField($field)
+    {
+        return in_array($field, $this->fillable);
+    }
+
     public function hasId()
     {
         return isset(((array) $this->attributes)[$this->primaryKey]);
@@ -390,13 +375,62 @@ class Model extends DB
     public function __call($method, $args)
     {
         switch ($method) {
-            case "where":
-                $this->where[$args[0] ?? $args['column']]
-                    = ["value" => $args[1] ?? $args['value'] ?? null, "operator" => $args[2] ?? $args['operator'] ?? "="];
-                return $this;
+            case "find":
+                return $this->where($this->primaryKey, $args[0] ?? $args['id']);
                 break;
             case "update":
                 return $this->newUpdate($args[0] ?? $args['data'], $args[1] ?? $args['fillable'] ?? true);
+                break;
+            case "first":
+                $this->limit = 1;
+                return $this->get();
+                break;
+            case "select":
+                $select = $args[0] ?? $args['columns'];
+                foreach ($select as $value) {
+                    if (!$this->hasField($value)) {
+                        Response::make(message: 'Column ' . $value . ' not found.', status: false, httpCode: 400);
+                        exit;
+                    }
+                }
+                $this->select = $select;
+                return $this;
+                break;
+            case "where":
+                try {
+                    if (is_array($args[0] ?? isset($args['columns']))) {
+                        foreach ($args[0] ?? $args['columns'] as $key => $column) {
+                            if (!$this->hasField($key)) {
+                                Response::make(message: 'Column ' . $key . ' not found.', status: false, httpCode: 400);
+                                exit;
+                            }
+                            if (!isset($column['value'])) {
+                                Response::make(message: 'Invalid where clause.', status: false, httpCode: 400);
+                                exit;
+                            }
+                            $this->where[$key] = ["value" => $column[0] ?? $column['value'], "operator" => $column[1] ?? $column['operator'] ?? "="];
+                        }
+                        return $this;
+                    }
+                    $this->where[$args[0] ?? $args['column']]
+                        = ["value" => $args[1] ?? $args['value'] ?? null, "operator" => $args[2] ?? $args['operator'] ?? "="];
+                    return $this;
+                } catch (\Exception $e) {
+                    Response::make(message: 'Invalid where clause.', status: false, httpCode: 400);
+                    exit;
+                }
+                break;
+            case "orderBy":
+                $this->orderBy[] = [$args[0] ?? $args['column'], $args[1] ?? $args['order'] ?? "ASC"];
+                return $this;
+                break;
+            case "limit":
+                $this->limit = $args[0] ?? $args['limit'];
+                return $this;
+                break;
+            case "offset":
+                $this->offset = $args[0] ?? $args['offset'];
+                return $this;
                 break;
         }
     }

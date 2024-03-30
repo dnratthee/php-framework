@@ -43,9 +43,11 @@ class Request extends Container
         foreach ($args as $key => $value) {
             $this->params[$key] = $value;
         }
+
         foreach ($_GET as $key => $value) {
             $this->params[$key] = $value;
         }
+
         $this->json = json_decode(file_get_contents('php://input'), true);
         if ($this->json) {
             foreach ($this->json as $key => $value) {

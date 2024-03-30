@@ -14,8 +14,30 @@ class RoomController extends Controller
 
     public function getAll(Request $request)
     {
+
+        $rooms = new Room;
+
+        if ($request->select) {
+            $rooms->select($request->select);
+        }
+
+        if ($request->where) {
+            $rooms->where($request->where);
+        }
+
+        $rooms->orderBy("datesave", "Desc")
+            ->orderBy("timesave", "Desc");
+
+        if ($request->limit) {
+            $rooms->limit($request->limit);
+        }
+
+        if ($request->offset) {
+            $rooms->offset($request->offset);
+        }
+
         Response::json(
-            Room::all()->get()
+            $rooms->get()
         );
     }
 
@@ -23,7 +45,7 @@ class RoomController extends Controller
     {
         Response::json(
             Room::find($request->id)
-                ->get()
+                ->first()
         );
     }
 
@@ -48,14 +70,6 @@ class RoomController extends Controller
     {
         Response::json(
             Room::destroy($request->id)
-        );
-    }
-
-    public function temp1(Request $request)
-    {
-        Response::json(
-            Room::where(column: 'temp1', operator: '>', value: $request->temp1)
-                ->get()
         );
     }
 
