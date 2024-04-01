@@ -45,7 +45,12 @@ class Request extends Container
         }
 
         foreach ($_GET as $key => $value) {
-            $this->params[$key] = $value;
+            try {
+                if (is_string($value)) $this->params[$key] = json_decode($value, true);
+                else $this->params[$key] = $value;
+            } catch (\Exception $e) {
+                $this->params[$key] = $value;
+            }
         }
 
         $this->json = json_decode(file_get_contents('php://input'), true);

@@ -4,7 +4,6 @@ namespace App\Libs;
 
 use App\Libs\Routing\Router;
 use App\Libs\Routing\Route;
-use App\Libs\Helper\Arr;
 
 class Application extends Container
 {

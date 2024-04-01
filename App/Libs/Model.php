@@ -35,6 +35,7 @@ class Model extends DB
     protected $unique = [];
 
     protected $attributes;
+    protected $deleted_at;
 
     public function __construct(array|\stdClass $attributes = null)
     {
@@ -80,10 +81,6 @@ class Model extends DB
 
     public function get()
     {
-        if ($this->hasData()) {
-            return $this->attributes;
-        }
-
         $select = implode(", ", $this->select);
 
         $sql = "SELECT " . $select . " FROM " . $this->table;
@@ -94,6 +91,13 @@ class Model extends DB
                 $where[] = $key . " " . $value["operator"] . " :" . $key;
             }
             $sql .= " WHERE " . implode(" AND ", $where);
+            if ($this->softDelete) {
+                $sql .= " AND deleted_at IS NULL";
+            }
+        } else {
+            if ($this->softDelete) {
+                $sql .= " WHERE deleted_at IS NULL";
+            }
         }
 
         if (count($this->orderBy) > 0) {
@@ -123,15 +127,17 @@ class Model extends DB
             $stmt->execute($param);
             if ($this->limit == 1) {
                 $data = $stmt->fetch(PDO::FETCH_OBJ);
-                $this->{$this->primaryKey} = $data->{$this->primaryKey};
-                foreach ($data as $key => $value) {
-                    if (in_array($key, $this->hidden)) {
-                        $this->$key = "******";
-                        continue;
+                if ($data) {
+                    $this->{$this->primaryKey} = $data->{$this->primaryKey};
+                    foreach ($data as $key => $value) {
+                        if (in_array($key, $this->hidden)) {
+                            $this->$key = "******";
+                            continue;
+                        }
+                        $this->$key = $data->{$key};
                     }
-                    $this->$key = $data->{$key};
+                    return $this;
                 }
-                return $this;
             }
             $data = $stmt->fetchAll(PDO::FETCH_OBJ);
             $clean = new \stdClass();
@@ -283,6 +289,14 @@ class Model extends DB
     public static function destroy($id)
     {
         $class = new static;
+
+        if ($class->softDelete) {
+            $class->{$class->primaryKey} = $id;
+            $class->newUpdate(['deleted_at' => date('Y-m-d H:i:s')], false);
+            return (new Response)->withHTTPCode(204);
+            return;
+        }
+
         $sql = "DELETE FROM " . $class->table . " WHERE " . $class->primaryKey . " = :id";
         $stmt = $class->db->prepare($sql);
         $stmt->execute(['id' => $id]);
@@ -329,10 +343,12 @@ class Model extends DB
         $sql .= " WHERE " . $this->primaryKey . " = " . $this->getId()
             . " LIMIT 1;";
 
+
+
         try {
             $stmt = $this->db->prepare($sql);
             $stmt->execute($newData);
-            return $this->find($this->getId());
+            return $this->find($this->getId())->first();
         } catch (\Exception $e) {
             debug($e->getMessage());
             return (new Response)->withMessage('Server Error.')->withStatus(false)->withHTTPCode(500);
@@ -341,6 +357,9 @@ class Model extends DB
 
     public function hasField($field)
     {
+        if ($field == $this->primaryKey) {
+            return true;
+        }
         return in_array($field, $this->fillable);
     }
 
@@ -351,6 +370,9 @@ class Model extends DB
 
     public function getId()
     {
+        if (!$this->hasId()) {
+            return null;
+        }
         return ((array) $this->attributes)[$this->primaryKey];
     }
 
@@ -375,6 +397,9 @@ class Model extends DB
     public function __call($method, $args)
     {
         switch ($method) {
+            case "all":
+                return $this->get()->attributes;
+                break;
             case "find":
                 return $this->where($this->primaryKey, $args[0] ?? $args['id']);
                 break;

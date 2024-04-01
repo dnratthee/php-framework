@@ -2,6 +2,8 @@
 
 namespace App\Libs;
 
+use stdClass;
+
 class Response
 {
     protected $data = [];
@@ -100,7 +102,11 @@ class Response
     {
         $view = str_replace('.', '/', $view);
         $view = __DIR__ . '/../Views/' . $view . '.view.php';
+
         if (file_exists($view)) {
+            if (is_object($data) && property_exists($data, 'attributes')) {
+                $data = $data->attributes;
+            }
             extract($data);
             include $view;
         } else {

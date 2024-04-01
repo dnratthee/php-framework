@@ -16,6 +16,8 @@ class Database extends Container
     protected $limit = 20;
     protected $offset;
 
+    protected $softDelete = false;
+
     static protected function getPdo()
     {
         $db = Config::get('db');

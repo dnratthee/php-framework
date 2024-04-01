@@ -18,7 +18,6 @@ if (!function_exists('debug')) {
     function debug($message, $type = 1)
     {
         if (env('APP_DEBUG')) {
-            header('Content-Type: text/html');
             echo "<pre>";
             if ($type == 1) {
                 print_r($message);

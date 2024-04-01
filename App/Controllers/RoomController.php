@@ -25,8 +25,8 @@ class RoomController extends Controller
             $rooms->where($request->where);
         }
 
-        $rooms->orderBy("datesave", "Desc")
-            ->orderBy("timesave", "Desc");
+        $rooms->orderBy("datesave", "Asc")
+            ->orderBy("timesave", "Asc");
 
         if ($request->limit) {
             $rooms->limit($request->limit);
@@ -75,6 +75,6 @@ class RoomController extends Controller
 
     public function index(Request $request)
     {
-        Response::render('room', ["rooms" => Room::all()->get()]);
+        Response::render('room', ["rooms" => Room::all()]);
     }
 }
